@@ -1,0 +1,2 @@
+process,before_rows,after_rows,coordinate_filtered_rows,before_columns,after_columns,execution_time_seconds
+etl_transform,104839,104831,8,35,39,5.8716

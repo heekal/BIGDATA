@@ -1,0 +1,2 @@
+process,status,taxi_source,weather_source,taxi_rows,taxi_columns,weather_rows,weather_columns,execution_time_seconds
+elt_extract_load,success,file_csv,api_csv,104839,11,744,24,2.4873

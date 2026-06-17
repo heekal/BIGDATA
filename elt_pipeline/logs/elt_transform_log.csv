@@ -1,0 +1,2 @@
+process,status,output_table,rows,execution_time_seconds
+elt_transform,success,elt_trip_analysis,104839,0.8295

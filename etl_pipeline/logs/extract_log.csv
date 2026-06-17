@@ -1,0 +1,3 @@
+source_name,source_type,rows,columns,file_size_bytes,execution_time_seconds
+taxi_trip,file_csv,104839,11,14049700,0.3361
+weather,api_csv,744,24,147817,1.2425

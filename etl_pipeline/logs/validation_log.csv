@@ -1,0 +1,8 @@
+rule,status,failed_rows
+uniqueness_check_id,True,0
+null_check_id,True,0
+range_check_passenger_count,True,0
+range_check_coordinate_bounds,True,0
+datatype_pickup_datetime,True,0
+referential_integrity_weather_date,True,0
+distribution_trip_duration_positive,True,0
