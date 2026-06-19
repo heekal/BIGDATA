@@ -1,2 +1,2 @@
-process,status,fact_rows,dim_time_rows,dim_vendor_rows,dim_weather_rows,execution_time_seconds
-etl_load,success,104831,336,2,14,1.3826
+pipeline,process,status,output_database,fact_rows,dim_time_rows,dim_vendor_rows,dim_weather_rows,dashboard_rows,execution_time_seconds
+ETL,etl_load,success,warehouse/warehouse_etl.db,104831,336,2,14,104831,8.3645

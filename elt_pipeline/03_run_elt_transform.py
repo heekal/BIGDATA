@@ -1,36 +1,72 @@
-import os
-import time
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 import sqlite3
+import time
+
+import numpy as np
 import pandas as pd
 
-os.makedirs("elt_pipeline/logs", exist_ok=True)
+from utils_common import (
+  add_normalized_columns,
+  build_star_schema,
+  ensure_directories,
+  haversine_scalar
+)
 
-start = time.time()
 
-conn = sqlite3.connect("warehouse/warehouse.db")
+def main():
+  ensure_directories()
+  start = time.time()
 
-with open("elt_pipeline/02_transform_elt.sql", "r", encoding="utf-8") as file:
-  sql = file.read()
+  conn = sqlite3.connect("warehouse/warehouse_elt.db")
+  conn.create_function("HAVERSINE_KM", 4, haversine_scalar)
 
-conn.executescript(sql)
+  with open("elt_pipeline/02_transform_elt.sql", "r", encoding="utf-8") as file:
+    sql = file.read()
 
-row_count = pd.read_sql_query(
-  "SELECT COUNT(*) AS total_rows FROM elt_trip_analysis",
-  conn
-)["total_rows"].iloc[0]
+  conn.executescript(sql)
 
-conn.commit()
-conn.close()
+  df = pd.read_sql_query("SELECT * FROM elt_trip_analysis", conn)
+  df["distance_km"] = pd.to_numeric(df["distance_km"], errors="coerce")
+  df["distance_km"] = df["distance_km"].fillna(df["distance_km"].median())
+  df["speed_kmh"] = pd.to_numeric(df["speed_kmh"], errors="coerce")
+  df["speed_kmh"] = df["speed_kmh"].replace([np.inf, -np.inf], np.nan)
+  df["speed_kmh"] = df["speed_kmh"].fillna(df["speed_kmh"].median())
+  df = add_normalized_columns(df)
 
-log = pd.DataFrame([{
-  "process": "elt_transform",
-  "status": "success",
-  "output_table": "elt_trip_analysis",
-  "rows": row_count,
-  "execution_time_seconds": round(time.time() - start, 4)
-}])
+  df.to_sql("elt_trip_analysis", conn, if_exists="replace", index=False)
+  df.to_csv("outputs/elt/elt_sql_transformed_data.csv", index=False)
 
-log.to_csv("elt_pipeline/logs/elt_transform_log.csv", index=False)
+  conn.commit()
+  conn.close()
 
-print("ELT transform success")
-print(log)
+  result = build_star_schema(
+    source_df=df,
+    db_path="warehouse/warehouse_elt.db",
+    source_pipeline="ELT",
+    include_elt_alias=False
+  )
+
+  log = pd.DataFrame([{
+    "pipeline": "ELT",
+    "process": "elt_transform",
+    "status": "success",
+    "output_table": "elt_trip_analysis",
+    "output_path": "outputs/elt/elt_sql_transformed_data.csv",
+    "output_database": "warehouse/warehouse_elt.db",
+    "rows": len(df),
+    **result,
+    "execution_time_seconds": round(time.time() - start, 4)
+  }])
+
+  log.to_csv("elt_pipeline/logs/elt_transform_log.csv", index=False)
+
+  print("ELT transform success")
+  print(log)
+
+
+if __name__ == "__main__":
+  main()

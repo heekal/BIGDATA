@@ -1,0 +1,142 @@
+BIG DATA REVISION - ETL DAN ELT DASHBOARD DIPISAH
+
+A. STRUKTUR YANG HARUS ADA SEBELUM RUN
+1. Taruh dataset utama di:
+   raw/taxi.csv
+
+2. Untuk weather data, pilih salah satu:
+   OPSI 1 - API:
+   Buat file .env di root project:
+   WEATHER_API_URL=ISI_URL_CSV_WEATHER_KAMU
+
+   OPSI 2 - Cached CSV:
+   Taruh file weather di:
+   datalake/weather_api_raw.csv
+
+3. Taruh template dashboard lama di root project:
+   bigdata_project.pbit
+
+B. INSTALL DEPENDENCY
+Run:
+   pip install -r requirements.txt
+
+C. RUN PIPELINE DARI 0
+Run:
+   python run_all.py --reset
+
+Output yang dibuat:
+   warehouse/warehouse_etl.db
+   warehouse/warehouse_elt.db
+   outputs/etl/etl_cleaned_data.csv
+   outputs/elt/elt_sql_transformed_data.csv
+   dashboard_exports/dashboard_etl.csv
+   dashboard_exports/dashboard_elt.csv
+   dashboard_exports/dashboard_pipeline_summary.csv
+
+D. BUAT 2 FILE DASHBOARD DARI TEMPLATE LAMA
+Run:
+   python make_dashboard_templates.py
+
+Output:
+   dashboard_etl_template.pbit
+   dashboard_elt_template.pbit
+
+Buka dashboard_etl_template.pbit di Power BI, refresh, lalu Save As:
+   dashboard_etl.pbix
+
+Buka dashboard_elt_template.pbit di Power BI, refresh, lalu Save As:
+   dashboard_elt.pbix
+
+E. KALAU MAU SEKALIGUS RUN PIPELINE DAN BIKIN TEMPLATE
+Run:
+   python run_all.py --reset --make-pbit
+
+F. KONSEP UNTUK DIJELASKAN KE DOSEN
+1. ETL dan ELT punya output berbeda:
+   - ETL output database: warehouse/warehouse_etl.db
+   - ELT output database: warehouse/warehouse_elt.db
+   - ETL dashboard export: dashboard_exports/dashboard_etl.csv
+   - ELT dashboard export: dashboard_exports/dashboard_elt.csv
+
+2. Dashboard dibuat menjadi 2 file:
+   - dashboard_etl.pbix
+   - dashboard_elt.pbix
+
+3. Visualisasi tetap mirip karena keduanya memakai template PBIT yang sama.
+   Bedanya hanya sumber datanya:
+   - dashboard_etl.pbix membaca warehouse/warehouse_etl.db
+   - dashboard_elt.pbix membaca warehouse/warehouse_elt.db
+
+4. ETL berbeda dari ELT:
+   - ETL: extract -> transform Python -> load ke warehouse_etl.db
+   - ELT: extract -> load raw ke warehouse_elt.db -> transform SQL -> dashboard
+
+G. PENTING UNTUK ERROR POWER BI BAD JSON ESCAPE \U
+Kalau Power BI muncul error:
+   Bad JSON escape sequence: \U
+
+Penyebabnya adalah path Windows mentah seperti C:\Users\... masuk ke JSON PBIT.
+Jangan edit DataModelSchema/PBIT manual dengan path backslash.
+Script make_dashboard_templates.py versi ini otomatis mengubah path menjadi format aman:
+   C:/Users/.../warehouse/warehouse_etl.db
+   C:/Users/.../warehouse/warehouse_elt.db
+
+Kalau sebelumnya sudah terlanjur membuat template yang error, hapus dulu:
+   dashboard_etl_template.pbit
+   dashboard_elt_template.pbit
+
+Lalu generate ulang:
+   python make_dashboard_templates.py
+
+Jangan overwrite file PBIX lama. Simpan sebagai dua file baru:
+   dashboard_etl.pbix
+   dashboard_elt.pbix
+
+
+TROUBLESHOOTING POWER BI LOAD ERROR
+===================================
+
+1. Error:
+   The column 'pickup_weekday_number' of the table wasn't found.
+
+   Penyebab:
+   Power BI template lama tetap mencoba load table elt_trip_analysis.
+   Karena dashboard ETL memakai database ETL, database ETL juga harus punya table
+   elt_trip_analysis dengan schema yang kompatibel dengan template lama.
+
+   Fix di versi ini:
+   ETL output sekarang otomatis membuat kolom pickup_weekday_number dan conditions,
+   lalu membuat alias table elt_trip_analysis di warehouse_etl.db.
+
+2. Wajib run fresh start:
+
+   python run_all.py --reset --make-pbit
+
+3. Jangan pakai warehouse lama. Kalau masih error, hapus manual file berikut:
+
+   warehouse/warehouse_etl.db
+   warehouse/warehouse_elt.db
+   dashboard_etl_template.pbit
+   dashboard_elt_template.pbit
+
+   Lalu run ulang command di atas.
+
+DASHBOARD MANUAL ATAU TIDAK?
+============================
+
+Visual tidak perlu dibuat ulang manual dari kosong.
+Gunakan bigdata_project.pbit sebagai template visual.
+Yang manual hanya langkah akhir di Power BI:
+
+1. Buka dashboard_etl_template.pbit
+2. Refresh
+3. Save As dashboard_etl.pbix
+4. Buka dashboard_elt_template.pbit
+5. Refresh
+6. Save As dashboard_elt.pbix
+
+Hasil akhirnya tetap dua file dashboard berbeda:
+- dashboard_etl.pbix
+- dashboard_elt.pbix
+
+Visualisasi mengikuti template lama karena nama table dan schema dibuat kompatibel.

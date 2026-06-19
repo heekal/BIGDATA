@@ -1,2 +1,2 @@
-process,status,taxi_source,weather_source,taxi_rows,taxi_columns,weather_rows,weather_columns,execution_time_seconds
-elt_extract_load,success,file_csv,api_csv,104839,11,744,24,2.4873
+pipeline,process,status,output_database,taxi_source,weather_source,taxi_output_path,weather_output_path,taxi_rows,taxi_columns,weather_rows,weather_columns,execution_time_seconds
+ELT,elt_extract_load,success,warehouse/warehouse_elt.db,file_csv,api_csv,datalake/taxi_raw.csv,datalake/weather_api_raw.csv,104839,11,744,24,4.7714

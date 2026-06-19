@@ -1,0 +1,3 @@
+pipeline,total_trip,avg_duration_minutes,avg_distance_km,avg_speed_kmh,rain_rows,not_rain_rows
+ETL,104831,11.9086,2.8206,15.1707,31100,73731
+ELT,104839,14.1355,3.3936,15.5345,31102,73737

@@ -1,69 +1,57 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1]))
+
 import os
 import time
 import shutil
-import requests
+
 import pandas as pd
-from io import StringIO
-from dotenv import load_dotenv
 
-load_dotenv()
+from utils_common import ensure_directories, read_taxi_source, read_weather_source
 
-RAW_DIR = "raw"
-LOG_DIR = "etl_pipeline/logs"
 
-os.makedirs(RAW_DIR, exist_ok=True)
-os.makedirs(LOG_DIR, exist_ok=True)
-
-def extract_etl_source1():
+def main():
+  ensure_directories()
   start = time.time()
 
-  source_path = "raw/taxi.csv"
-  output_path = "raw/etl_taxi_raw.csv"
+  taxi = read_taxi_source("raw/taxi.csv")
+  weather, weather_source_type = read_weather_source("outputs/etl/raw_weather.csv")
 
-  df = pd.read_csv(source_path)
-  shutil.copy(source_path, output_path)
+  shutil.copy("raw/taxi.csv", "raw/etl_taxi_raw.csv")
+  taxi.to_csv("outputs/etl/raw_taxi.csv", index=False)
+  weather.to_csv("raw/etl_weather_raw.csv", index=False)
 
-  return {
-    "source_name": "taxi_trip",
-    "source_type": "file_csv",
-    "rows": df.shape[0],
-    "columns": df.shape[1],
-    "file_size_bytes": os.path.getsize(output_path),
-    "execution_time_seconds": round(time.time() - start, 4)
-  }
+  logs = pd.DataFrame([
+    {
+      "pipeline": "ETL",
+      "process": "extract_taxi",
+      "source_name": "taxi_trip",
+      "source_type": "file_csv",
+      "output_path": "outputs/etl/raw_taxi.csv",
+      "rows": taxi.shape[0],
+      "columns": taxi.shape[1],
+      "file_size_bytes": os.path.getsize("outputs/etl/raw_taxi.csv")
+    },
+    {
+      "pipeline": "ETL",
+      "process": "extract_weather",
+      "source_name": "weather",
+      "source_type": weather_source_type,
+      "output_path": "outputs/etl/raw_weather.csv",
+      "rows": weather.shape[0],
+      "columns": weather.shape[1],
+      "file_size_bytes": os.path.getsize("outputs/etl/raw_weather.csv")
+    }
+  ])
 
-def extract_etl_source2():
-  start = time.time()
+  logs["execution_time_seconds"] = round(time.time() - start, 4)
+  logs.to_csv("etl_pipeline/logs/extract_log.csv", index=False)
 
-  weather_api_url = os.getenv("WEATHER_API_URL")
+  print("ETL extract success")
+  print(logs)
 
-  if not weather_api_url:
-    raise ValueError("WEATHER_API_URL belum ada di file .env")
-
-  response = requests.get(weather_api_url, timeout=60)
-  response.raise_for_status()
-
-  df = pd.read_csv(StringIO(response.text))
-
-  output_path = "raw/etl_weather_raw.csv"
-  df.to_csv(output_path, index=False)
-
-  return {
-    "source_name": "weather",
-    "source_type": "api_csv",
-    "rows": df.shape[0],
-    "columns": df.shape[1],
-    "file_size_bytes": os.path.getsize(output_path),
-    "execution_time_seconds": round(time.time() - start, 4)
-  }
 
 if __name__ == "__main__":
-  logs = [
-    extract_etl_source1(),
-    extract_etl_source2()
-  ]
-
-  log_df = pd.DataFrame(logs)
-  log_df.to_csv("etl_pipeline/logs/extract_log.csv", index=False)
-
-  print(log_df)
+  main()
